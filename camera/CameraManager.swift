@@ -1296,6 +1296,8 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
     })
   }
 
+  fileprivate var orientationChangeTime: Double? = nil
+
   fileprivate func _startFollowingDeviceOrientation() {
     if shouldRespondToOrientationChanges && !cameraIsObservingDeviceOrientation {
       coreMotionManager = CMMotionManager()
@@ -1314,20 +1316,30 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
             let x = CGFloat(acceleration.x) * scaling
             let y = CGFloat(acceleration.y) * scaling
 
+            guard acceleration.z > -cos(Double.pi / 6) && acceleration.z < cos(Double.pi / 6) else {
+              return
+            }
+
             let deviceOrientation = self.deviceOrientation
 
-            if x < -0.5 {
+            if x < -0.75 {
               self.deviceOrientation = .landscapeLeft
-            } else if x > 0.5 {
+            } else if x > 0.75 {
               self.deviceOrientation = .landscapeRight
-            } else if y > 0.5 {
+            } else if y > 0.75 {
               self.deviceOrientation = .portraitUpsideDown
-            } else if y < 0.5 {
+            } else if y < -0.75 {
               self.deviceOrientation = .portrait
             }
 
             if self.deviceOrientation != deviceOrientation {
-              self.orientationDidChange?(self.deviceOrientation)
+              self.orientationChangeTime = Date().timeIntervalSince1970
+            } else if let orientationChangeTime = self.orientationChangeTime {
+              let currentTime = Date().timeIntervalSince1970
+              if currentTime - orientationChangeTime > 0.7 {
+                self.orientationChangeTime = nil
+                self.orientationDidChange?(self.deviceOrientation)
+              }
             }
 
             self._orientationChanged()
