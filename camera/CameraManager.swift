@@ -91,6 +91,8 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
     }
   }
 
+  open var orientationDidChange: ((UIDeviceOrientation) -> Void)? = nil
+
   /**
    Property to determine if manager should horizontally flip image took by front camera.
    - note: Default value is **false**
@@ -1307,21 +1309,25 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
               return
             }
 
-            let scaling: CGFloat = CGFloat(1) / CGFloat(( abs(acceleration.x) + abs(acceleration.y)))
+            let scaling = 1 / CGFloat(abs(acceleration.x) + abs(acceleration.y))
 
-            let x: CGFloat = CGFloat(acceleration.x) * scaling
-            let y: CGFloat = CGFloat(acceleration.y) * scaling
+            let x = CGFloat(acceleration.x) * scaling
+            let y = CGFloat(acceleration.y) * scaling
 
-            if acceleration.z < Double(-0.75) {
-              self.deviceOrientation = .faceUp
-            } else if acceleration.z > Double(0.75) {
-              self.deviceOrientation = .faceDown
-            } else if x < CGFloat(-0.5) {
+            let deviceOrientation = self.deviceOrientation
+
+            if x < -0.5 {
               self.deviceOrientation = .landscapeLeft
-            } else if x > CGFloat(0.5) {
+            } else if x > 0.5 {
               self.deviceOrientation = .landscapeRight
-            } else if y > CGFloat(0.5) {
+            } else if y > 0.5 {
               self.deviceOrientation = .portraitUpsideDown
+            } else if y < 0.5 {
+              self.deviceOrientation = .portrait
+            }
+
+            if self.deviceOrientation != deviceOrientation {
+              self.orientationDidChange?(self.deviceOrientation)
             }
 
             self._orientationChanged()
